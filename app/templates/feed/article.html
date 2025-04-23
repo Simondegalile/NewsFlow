@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if article %}{{ article.title }}{% else %}Article{% endif %} - NewsFlow{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <div class="mb-6">
+        <a href="{{ url_for('feed.index') }}" class="text-blue-600 hover:underline">
+            <i class="fas fa-arrow-left mr-2"></i> Retour
+        </a>
+    </div>
+    
+    {% if article %}
+    <article class="bg-white shadow rounded-lg overflow-hidden">
+        <div class="p-6">
+            <!-- En-tête de l'article -->
+            <div class="mb-6">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <div class="text-sm text-blue-600">{{ article.source.name if article.source else 'Source inconnue' }}</div>
+                        <div class="text-sm text-gray-500">{{ article.published_date.strftime('%d/%m/%Y') if article.published_date else '' }}</div>
+                    </div>
+                    
+                    <button id="favorite-btn" class="p-2 bg-gray-100 rounded-full">
+                        <i class="fas fa-bookmark {% if is_favorite %}text-blue-600{% else %}text-gray-400{% endif %}"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Titre et image -->
+            <h1 class="text-3xl font-bold mb-6">{{ article.title }}</h1>
+            
+            {% if article.image_url %}
+                <img src="{{ article.image_url }}" alt="{{ article.title }}" class="w-full max-h-96 object-cover rounded mb-6">
+            {% endif %}
+            
+            <!-- Contenu -->
+            <div class="prose max-w-none">
+                <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
+                    <p class="text-lg">{{ article.summary or 'Aucun résumé disponible' }}</p>
+                </div>
+                
+                <div class="article-content">
+                    {% if article.content %}
+                        {{ article.content|safe }}
+                    {% else %}
+                        {{ article.summary|safe }}
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Lien vers l'article original -->
+            <div class="mt-8 pt-6 border-t border-gray-200">
+                <a href="{{ article.url }}" target="_blank" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+                    Lire l'article original <i class="fas fa-external-link-alt ml-1"></i>
+                </a>
+            </div>
+        </div>
+    </article>
+    {% else %}
+    <div class="bg-white shadow rounded-lg p-8 text-center">
+        <h2 class="text-2xl font-bold mb-4">Article non trouvé</h2>
+        <p class="text-gray-600 mb-6">Cet article n'existe pas ou a été supprimé.</p>
+        <a href="{{ url_for('feed.index') }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+            Retour aux articles
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if article %}
+<script>
+    // Enregistrer simplement la vue (sans tracking complexe)
+    fetch('/api/track', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            article_id: "{{ article.id }}",
+            type: 'view'
+        })
+    });
+    
+    // Favoris avec une approche simplifiée
+    const favoriteBtn = document.getElementById('favorite-btn');
+    if (favoriteBtn) {
+        favoriteBtn.addEventListener('click', function() {
+            fetch('/api/favorites/toggle/{{ article.id }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                const icon = this.querySelector('i');
+                if (data.status === 'added') {
+                    icon.classList.add('text-blue-600');
+                    icon.classList.remove('text-gray-400');
+                } else {
+                    icon.classList.add('text-gray-400');
+                    icon.classList.remove('text-blue-600');
+                }
+            });
+        });
+    }
+</script>
+{% endif %}
+{% endblock %}

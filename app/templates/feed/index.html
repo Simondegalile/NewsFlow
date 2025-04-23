@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block title %}NewsFlow - Actualités{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <h1 class="text-2xl font-bold mb-6">Fil d'actualités</h1>
+    
+    <!-- Catégories -->
+    <div class="flex overflow-x-auto space-x-2 mb-6">
+        <a href="{{ url_for('feed.index') }}" class="px-4 py-2 bg-blue-600 text-white rounded-full">Tous</a>
+        
+        {% if categories %}
+            {% for category in categories %}
+                <a href="{{ url_for('feed.index', category=category.id) }}" 
+                   class="px-4 py-2 bg-gray-200 text-gray-700 rounded-full">
+                    {{ category.name }}
+                </a>
+            {% endfor %}
+        {% endif %}
+    </div>
+    
+    <!-- Liste des articles -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="articles-container">
+        <!-- Chargement -->
+        <div class="col-span-full flex justify-center items-center p-12">
+            <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Chargement simplifié des articles
+        fetch('/api/articles')
+            .then(response => response.json())
+            .then(data => {
+                const container = document.getElementById('articles-container');
+                container.innerHTML = '';
+                
+                if (data.articles && data.articles.length > 0) {
+                    data.articles.forEach(article => {
+                        container.innerHTML += `
+                            <div class="bg-white shadow rounded-lg overflow-hidden">
+                                ${article.image_url ? `<img src="${article.image_url}" alt="${article.title}" class="w-full h-48 object-cover">` : ''}
+                                <div class="p-4">
+                                    <div class="text-sm text-blue-600 mb-1">${article.source_name || 'Source'}</div>
+                                    <h2 class="text-xl font-bold mb-2">${article.title}</h2>
+                                    <p class="text-gray-700 mb-4">${article.summary || ''}</p>
+                                    <a href="/article/${article.id}" class="text-blue-600 hover:underline">Lire l'article</a>
+                                </div>
+                            </div>
+                        `;
+                    });
+                } else {
+                    container.innerHTML = '<div class="col-span-full text-center p-12">Aucun article disponible</div>';
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                document.getElementById('articles-container').innerHTML = 
+                    '<div class="col-span-full text-center p-12 text-red-600">Erreur lors du chargement des articles</div>';
+            });
+    });
+</script>
+{% endblock %}
