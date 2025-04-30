@@ -33,11 +33,13 @@ def create_app():
     from app.routes.feed import feed_bp
     from app.routes.favorite import favorite_bp
     from app.routes.dashboard import dashboard_bp
+    from app.routes.direct_feed import direct_feed_bp  # Nouveau blueprint
     
     app.register_blueprint(auth_bp)
     app.register_blueprint(feed_bp)
     app.register_blueprint(favorite_bp)
     app.register_blueprint(dashboard_bp)
+    app.register_blueprint(direct_feed_bp)  # Enregistrement du nouveau blueprint
     
     # Commande pour initialiser la base de données
     @app.cli.command("init-db")
@@ -116,7 +118,7 @@ def create_app():
     @app.cli.command("update-rss")
     def update_rss():
         """Met à jour les articles depuis les flux RSS."""
-        from app.services.rss_service import fetch_and_store_articles
+        from app.services.rss_direct_service import fetch_and_store_articles
         
         articles_count = fetch_and_store_articles()
         print(f"Ajout de {articles_count} nouveaux articles.")

@@ -15,15 +15,55 @@
             
             <div class="flex space-x-4">
                 {% if current_user.is_authenticated %}
-                    <a href="{{ url_for('favorite.list_favorites') }}" class="text-gray-600 hover:text-blue-600">
-                        <i class="fas fa-bookmark"></i>
-                    </a>
-                    <a href="{{ url_for('dashboard.index') }}" class="text-gray-600 hover:text-blue-600">
-                        <i class="fas fa-chart-line"></i>
-                    </a>
-                    <a href="{{ url_for('auth.logout') }}" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                        Déconnexion
-                    </a>
+                    <div class="hidden md:flex space-x-4 mr-4">
+                        <a href="{{ url_for('feed.index') }}" class="text-gray-600 hover:text-blue-600 px-3 py-2">
+                            Articles
+                        </a>
+                        <a href="{{ url_for('direct_feed.index') }}" class="text-gray-600 hover:text-blue-600 px-3 py-2">
+                            Flux Directs
+                        </a>
+                    </div>
+                
+                    <div class="flex space-x-3">
+                        <div class="relative group">
+                            <a href="#" class="text-gray-600 hover:text-blue-600">
+                                <i class="fas fa-bookmark"></i>
+                            </a>
+                            <!-- Menu déroulant favoris -->
+                            <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg hidden group-hover:block z-10">
+                                <div class="py-1">
+                                    <a href="{{ url_for('favorite.list_favorites') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                        Articles stockés
+                                    </a>
+                                    <a href="{{ url_for('direct_feed.direct_favorites') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                        Flux directs
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="relative group">
+                            <a href="#" class="text-gray-600 hover:text-blue-600">
+                                <i class="fas fa-history"></i>
+                            </a>
+                            <!-- Menu déroulant historique -->
+                            <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg hidden group-hover:block z-10">
+                                <div class="py-1">
+                                    <a href="{{ url_for('direct_feed.direct_history') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                        Articles récents
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <a href="{{ url_for('dashboard.index') }}" class="text-gray-600 hover:text-blue-600">
+                            <i class="fas fa-chart-line"></i>
+                        </a>
+                        
+                        <a href="{{ url_for('auth.logout') }}" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                            Déconnexion
+                        </a>
+                    </div>
                 {% else %}
                     <a href="{{ url_for('auth.login') }}" class="text-blue-600 hover:text-blue-800">Connexion</a>
                     <a href="{{ url_for('auth.register') }}" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
@@ -32,6 +72,19 @@
                 {% endif %}
             </div>
         </nav>
+        
+        {% if current_user.is_authenticated %}
+            <div class="md:hidden container mx-auto px-4 py-2 flex justify-center">
+                <div class="flex space-x-4">
+                    <a href="{{ url_for('feed.index') }}" class="text-gray-600 hover:text-blue-600 px-3 py-2">
+                        Articles
+                    </a>
+                    <a href="{{ url_for('direct_feed.index') }}" class="text-gray-600 hover:text-blue-600 px-3 py-2">
+                        Flux Directs
+                    </a>
+                </div>
+            </div>
+        {% endif %}
     </header>
 
     <main>

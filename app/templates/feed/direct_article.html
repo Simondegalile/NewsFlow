@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title if title else "Article" }} - NewsFlow{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <div class="mb-6">
+        <a href="{{ url_for('direct_feed.index') }}" class="text-blue-600 hover:underline">
+            <i class="fas fa-arrow-left mr-2"></i> Retour
+        </a>
+    </div>
+    
+    <article class="bg-white shadow rounded-lg overflow-hidden">
+        <div class="p-6">
+            <!-- En-tête de l'article -->
+            <div class="mb-6">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <div class="text-sm text-blue-600">{{ source_name|default('Source inconnue') }}</div>
+                    </div>
+                    
+                    <!-- Bouton Favoris -->
+                    <button id="favorite-btn" class="p-2 bg-gray-100 rounded-full">
+                        <i class="fas fa-bookmark {% if is_favorite %}text-blue-600{% else %}text-gray-400{% endif %}"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Titre -->
+            <h1 class="text-3xl font-bold mb-6">{{ title|default('Article') }}</h1>
+            
+            <!-- Iframe vers l'article original -->
+            <div class="border rounded-lg overflow-hidden mb-6">
+                <div class="bg-gray-100 p-4 text-center text-sm text-gray-600">
+                    L'article est affiché dans son format original ci-dessous
+                </div>
+                <iframe src="{{ article_url }}" 
+                        class="w-full h-screen" 
+                        frameborder="0" 
+                        sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+                        loading="lazy">
+                </iframe>
+            </div>
+            
+            <!-- Alternative si l'iframe ne fonctionne pas -->
+            <div class="mt-8 pt-6 border-t border-gray-200">
+                <a href="{{ article_url }}" target="_blank" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+                    Ouvrir dans un nouvel onglet <i class="fas fa-external-link-alt ml-1"></i>
+                </a>
+                <p class="mt-4 text-sm text-gray-600">
+                    Si le contenu ne s'affiche pas correctement, veuillez cliquer sur le bouton ci-dessus pour ouvrir l'article dans un nouvel onglet.
+                </p>
+            </div>
+        </div>
+    </article>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Enregistrer la vue
+    fetch('/api/track', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            type: 'view_direct',
+            url: "{{ article_url }}"
+        })
+    });
+    
+    // Gestion des favoris
+    const favoriteBtn = document.getElementById('favorite-btn');
+    if (favoriteBtn) {
+        favoriteBtn.addEventListener('click', function() {
+            // Création d'un ID temporaire basé sur l'URL (pour les articles directs)
+            const articleId = btoa("{{ article_url }}").replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+            
+            fetch('/api/direct-favorites/toggle', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    url: "{{ article_url }}",
+                    title: "{{ title }}",
+                    source: "{{ source_name }}",
+                    summary: ""
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                const icon = this.querySelector('i');
+                if (data.status === 'added') {
+                    icon.classList.add('text-blue-600');
+                    icon.classList.remove('text-gray-400');
+                } else {
+                    icon.classList.add('text-gray-400');
+                    icon.classList.remove('text-blue-600');
+                }
+            })
+            .catch(error => {
+                console.error('Erreur lors de la mise à jour des favoris:', error);
+            });
+        });
+    }
+</script>
+{% endblock %}

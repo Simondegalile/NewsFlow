@@ -4,16 +4,25 @@
 
 {% block content %}
 <div class="container mx-auto px-4 py-6">
-    <h1 class="text-2xl font-bold mb-6">Fil d'actualités</h1>
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold">Fil d'actualités</h1>
+        
+        <a href="{{ url_for('feed.refresh_feed') }}" class="bg-blue-100 text-blue-800 px-4 py-2 rounded-full hover:bg-blue-200 flex items-center">
+            <i class="fas fa-sync-alt mr-2"></i> Actualiser
+        </a>
+    </div>
     
     <!-- Catégories -->
-    <div class="flex overflow-x-auto space-x-2 mb-6">
-        <a href="{{ url_for('feed.index') }}" class="px-4 py-2 bg-blue-600 text-white rounded-full">Tous</a>
+    <div class="flex overflow-x-auto space-x-2 mb-6 pb-2">
+        <a href="{{ url_for('feed.index') }}" 
+           class="px-4 py-2 {% if not category_id %}bg-blue-600 text-white{% else %}bg-gray-200 text-gray-700{% endif %} rounded-full">
+            Tous
+        </a>
         
         {% if categories %}
             {% for category in categories %}
                 <a href="{{ url_for('feed.index', category=category.id) }}" 
-                   class="px-4 py-2 bg-gray-200 text-gray-700 rounded-full">
+                   class="px-4 py-2 {% if category_id == category.id %}bg-blue-600 text-white{% else %}bg-gray-200 text-gray-700{% endif %} rounded-full">
                     {{ category.name }}
                 </a>
             {% endfor %}
@@ -21,48 +30,78 @@
     </div>
     
     <!-- Liste des articles -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="articles-container">
-        <!-- Chargement -->
-        <div class="col-span-full flex justify-center items-center p-12">
-            <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600"></div>
-        </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% if articles %}
+            {% for article in articles %}
+                <div class="bg-white shadow rounded-lg overflow-hidden">
+                    {% if article.image_url %}
+                        <img src="{{ article.image_url }}" alt="{{ article.title }}" class="w-full h-48 object-cover">
+                    {% else %}
+                        <div class="h-48 bg-gray-200 flex items-center justify-center">
+                            <i class="fas fa-newspaper text-gray-400 text-4xl"></i>
+                        </div>
+                    {% endif %}
+                    
+                    <div class="p-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <div class="text-sm text-blue-600">{{ article.source.name }}</div>
+                            <div class="text-xs text-gray-500">{{ article.published_date.strftime('%d/%m/%Y') if article.published_date else '' }}</div>
+                        </div>
+                        
+                        <h2 class="text-xl font-bold mb-2">{{ article.title }}</h2>
+                        
+                        <p class="text-gray-700 mb-4">
+                            {{ article.summary|striptags|truncate(150) }}
+                        </p>
+                        
+                        <div class="flex justify-between items-center">
+                            <a href="{{ url_for('feed.view_article', article_id=article.id) }}" class="text-blue-600 hover:underline">
+                                Lire l'article
+                            </a>
+                            
+                            <button class="favorite-btn p-2 rounded-full hover:bg-gray-100" data-id="{{ article.id }}">
+                                <i class="fas fa-bookmark {% if article.id in favorite_articles %}text-blue-600{% else %}text-gray-400{% endif %}"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="col-span-3 bg-white shadow-lg rounded-lg p-8 text-center">
+                <i class="fas fa-newspaper text-gray-300 text-5xl mb-4"></i>
+                <h2 class="text-xl font-bold mb-2">Aucun article disponible</h2>
+                <p class="text-gray-600 mb-4">Cliquez sur le bouton "Actualiser" pour charger les derniers articles.</p>
+            </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Chargement simplifié des articles
-        fetch('/api/articles')
+    // Gestionnaire d'événements pour les boutons "Favoris"
+    document.querySelectorAll('.favorite-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const articleId = this.dataset.id;
+            
+            fetch(`/api/favorites/toggle/${articleId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
             .then(response => response.json())
             .then(data => {
-                const container = document.getElementById('articles-container');
-                container.innerHTML = '';
+                const icon = this.querySelector('i');
                 
-                if (data.articles && data.articles.length > 0) {
-                    data.articles.forEach(article => {
-                        container.innerHTML += `
-                            <div class="bg-white shadow rounded-lg overflow-hidden">
-                                ${article.image_url ? `<img src="${article.image_url}" alt="${article.title}" class="w-full h-48 object-cover">` : ''}
-                                <div class="p-4">
-                                    <div class="text-sm text-blue-600 mb-1">${article.source_name || 'Source'}</div>
-                                    <h2 class="text-xl font-bold mb-2">${article.title}</h2>
-                                    <p class="text-gray-700 mb-4">${article.summary || ''}</p>
-                                    <a href="/article/${article.id}" class="text-blue-600 hover:underline">Lire l'article</a>
-                                </div>
-                            </div>
-                        `;
-                    });
+                if (data.status === 'added') {
+                    icon.classList.add('text-blue-600');
+                    icon.classList.remove('text-gray-400');
                 } else {
-                    container.innerHTML = '<div class="col-span-full text-center p-12">Aucun article disponible</div>';
+                    icon.classList.add('text-gray-400');
+                    icon.classList.remove('text-blue-600');
                 }
             })
-            .catch(error => {
-                console.error('Erreur:', error);
-                document.getElementById('articles-container').innerHTML = 
-                    '<div class="col-span-full text-center p-12 text-red-600">Erreur lors du chargement des articles</div>';
-            });
+            .catch(error => console.error('Erreur:', error));
+        });
     });
 </script>
 {% endblock %}

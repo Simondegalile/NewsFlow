@@ -1,11 +1,15 @@
-from flask import Blueprint, render_template, request, jsonify
+from flask import Blueprint, render_template, redirect, url_for, flash, jsonify, request
 from flask_login import login_required, current_user
 from app import db
 from app.models.article import Article
 from app.models.category import Category
 from app.models.favorite import Favorite
 from app.models.interaction import Interaction
+from app.models.source import Source
 from datetime import datetime
+import os
+import subprocess
+import sys
 
 feed_bp = Blueprint('feed', __name__)
 
@@ -28,52 +32,21 @@ def index():
     db.session.add(interaction)
     db.session.commit()
     
-    return render_template('feed/index.html', 
-                           category_id=category_id, 
-                           categories=categories)
-
-@feed_bp.route('/api/articles')
-@login_required
-def get_articles():
-    page = request.args.get('page', 1, type=int)
-    category_id = request.args.get('category', type=int)
-    limit = request.args.get('limit', 10, type=int)
-    
-    # Filtrer par catégorie si spécifiée
+    # Récupérer les articles
+    articles_query = Article.query
     if category_id:
-        articles = Article.query.filter_by(category_id=category_id)
-    else:
-        articles = Article.query
+        articles_query = articles_query.filter_by(category_id=category_id)
     
-    # Ordonner et paginer
-    articles = articles.order_by(Article.published_date.desc()).paginate(
-        page=page, per_page=limit, error_out=False
-    )
+    articles = articles_query.order_by(Article.published_date.desc()).limit(30).all()
     
-    # Récupérer les favoris de l'utilisateur
+    # Récupérer les favoris
     favorite_articles = [fav.article_id for fav in Favorite.query.filter_by(user_id=current_user.id).all()]
     
-    # Formater la réponse
-    result = {
-        'articles': [],
-        'has_next': articles.has_next,
-        'next_page': articles.next_num if articles.has_next else None
-    }
-    
-    for article in articles.items:
-        result['articles'].append({
-            'id': article.id,
-            'title': article.title,
-            'summary': article.summary,
-            'image_url': article.image_url,
-            'source_name': article.source.name if article.source else 'Source inconnue',
-            'category_name': article.category.name if article.category else 'Catégorie inconnue',
-            'published_date': article.published_date.strftime('%d/%m/%Y') if article.published_date else None,
-            'url': article.url,
-            'is_favorite': article.id in favorite_articles
-        })
-    
-    return jsonify(result)
+    return render_template('feed/index.html',
+                           category_id=category_id,
+                           categories=categories,
+                           articles=articles,
+                           favorite_articles=favorite_articles)
 
 @feed_bp.route('/article/<int:article_id>')
 @login_required
@@ -127,3 +100,29 @@ def track_interaction():
     db.session.commit()
     
     return jsonify({'success': True})
+
+@feed_bp.route('/refresh_feed')
+@login_required
+def refresh_feed():
+    """Exécute le script d'importation des articles"""
+    try:
+        # Exécuter le script externe
+        script_path = os.path.join(os.getcwd(), 'direct_rss_import.py')
+        
+        if not os.path.exists(script_path):
+            flash("Script d'importation introuvable. Veuillez créer le fichier direct_rss_import.py", "danger")
+            return redirect(url_for('feed.index'))
+        
+        result = subprocess.run([sys.executable, script_path], 
+                            capture_output=True, 
+                            text=True)
+        
+        if result.returncode == 0:
+            flash("Articles importés avec succès", "success")
+        else:
+            flash(f"Erreur lors de l'importation des articles: {result.stderr}", "danger")
+        
+    except Exception as e:
+        flash(f"Erreur: {str(e)}", "danger")
+    
+    return redirect(url_for('feed.index'))

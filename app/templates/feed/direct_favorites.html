@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+
+{% block title %}NewsFlow - Mes favoris directs{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <h1 class="text-2xl font-bold mb-6">Mes articles favoris (Flux directs)</h1>
+    
+    <div class="flex space-x-4 mb-6">
+        <a href="{{ url_for('favorite.list_favorites') }}" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-full">
+            Articles stockés
+        </a>
+        <a href="{{ url_for('direct_feed.direct_favorites') }}" class="px-4 py-2 bg-blue-600 text-white rounded-full">
+            Flux directs
+        </a>
+    </div>
+    
+    {% if favorites %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for article in favorites %}
+                <div class="bg-white shadow-lg rounded-lg overflow-hidden">
+                    <div class="p-6">
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="text-sm text-blue-600">{{ article.source_name }}</span>
+                            <span class="text-sm text-gray-500">{{ article.date_added }}</span>
+                        </div>
+                        
+                        <h3 class="text-lg font-bold mb-4">{{ article.title }}</h3>
+                        <p class="text-gray-700 mb-4">{{ article.summary[:150] }}{% if article.summary|length > 150 %}...{% endif %}</p>
+                        
+                        <div class="flex justify-between items-center">
+                            <a href="{{ article.url }}" target="_blank" class="text-blue-600 hover:underline">Lire l'article</a>
+                            
+                            <button class="favorite-btn p-2 rounded-full hover:bg-gray-100 text-blue-600" data-url="{{ article.url }}">
+                                <i class="fas fa-bookmark"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="bg-white shadow-lg rounded-lg overflow-hidden p-8 text-center">
+            <i class="fas fa-bookmark text-gray-300 text-5xl mb-4"></i>
+            <h2 class="text-xl font-bold mb-2">Aucun article en favoris</h2>
+            <p class="text-gray-600 mb-4">Vous n'avez pas encore enregistré d'articles dans vos favoris.</p>
+            <a href="{{ url_for('direct_feed.index') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                Parcourir les articles
+            </a>
+        </div>
+    {% endif %}
+</div>
+
+{% block scripts %}
+<script>
+    // Gestion des favoris
+    document.querySelectorAll('.favorite-btn').forEach(button => {
+        button.addEventListener('click', async function() {
+            const articleUrl = this.dataset.url;
+            
+            try {
+                const response = await fetch('/api/direct-favorites/toggle', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        url: articleUrl
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'removed') {
+                    // Supprimer la carte d'article du DOM
+                    this.closest('.bg-white').remove();
+                    
+                    // Si c'était le dernier article, rafraîchir la page
+                    if (document.querySelectorAll('.favorite-btn').length === 0) {
+                        window.location.reload();
+                    }
+                }
+            } catch (error) {
+                console.error('Erreur lors de la mise à jour des favoris:', error);
+            }
+        });
+    });
+</script>
+{% endblock %}
+{% endblock %}

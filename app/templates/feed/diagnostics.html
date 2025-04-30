@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+
+{% block title %}NewsFlow - Diagnostic des flux RSS{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <h1 class="text-2xl font-bold mb-6">Diagnostic des flux RSS</h1>
+    
+    <div class="bg-white shadow rounded-lg p-6 mb-6">
+        <h2 class="text-xl font-bold mb-4">État des flux</h2>
+        <div id="summary" class="mb-4 flex flex-wrap gap-4">
+            <div class="bg-gray-100 p-4 rounded">
+                <div id="total-sources" class="text-2xl font-bold">0</div>
+                <div class="text-gray-600">Sources totales</div>
+            </div>
+            <div class="bg-green-100 p-4 rounded">
+                <div id="success-count" class="text-2xl font-bold text-green-600">0</div>
+                <div class="text-gray-600">Flux accessibles</div>
+            </div>
+            <div class="bg-red-100 p-4 rounded">
+                <div id="error-count" class="text-2xl font-bold text-red-600">0</div>
+                <div class="text-gray-600">Flux inaccessibles</div>
+            </div>
+        </div>
+        
+        <div id="loading" class="text-center py-8">
+            <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600 mx-auto"></div>
+            <p class="mt-4 text-gray-600">Analyse des flux RSS en cours...</p>
+        </div>
+        
+        <div id="results-container" class="hidden">
+            <h3 class="text-lg font-bold mb-2">Détails par source</h3>
+            <div class="overflow-x-auto">
+                <table class="min-w-full bg-white">
+                    <thead>
+                        <tr>
+                            <th class="py-2 px-4 border-b border-gray-200 bg-gray-50 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Source</th>
+                            <th class="py-2 px-4 border-b border-gray-200 bg-gray-50 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Catégorie</th>
+                            <th class="py-2 px-4 border-b border-gray-200 bg-gray-50 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Statut</th>
+                            <th class="py-2 px-4 border-b border-gray-200 bg-gray-50 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Articles</th>
+                            <th class="py-2 px-4 border-b border-gray-200 bg-gray-50 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="results-body">
+                        <!-- Les résultats seront insérés ici -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div class="bg-white shadow rounded-lg p-6">
+        <h2 class="text-xl font-bold mb-4">Outils</h2>
+        <div class="flex flex-wrap gap-4">
+            <a href="{{ url_for('direct_feed.index') }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+                Retour aux flux
+            </a>
+            <button id="refresh-btn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">
+                Actualiser le diagnostic
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Fonction pour charger les diagnostics
+    function loadDiagnostics() {
+        document.getElementById('loading').classList.remove('hidden');
+        document.getElementById('results-container').classList.add('hidden');
+        
+        fetch('/api/diagnose-feeds')
+            .then(response => response.json())
+            .then(data => {
+                console.log('Données diagnostiques:', data);
+                
+                // Mettre à jour les compteurs
+                document.getElementById('total-sources').textContent = data.sources_count;
+                document.getElementById('success-count').textContent = data.success_count;
+                document.getElementById('error-count').textContent = data.sources_count - data.success_count;
+                
+                // Remplir le tableau des résultats
+                const tbody = document.getElementById('results-body');
+                tbody.innerHTML = '';
+                
+                data.results.forEach(result => {
+                    const row = document.createElement('tr');
+                    
+                    // Source
+                    const sourceCell = document.createElement('td');
+                    sourceCell.className = 'py-2 px-4 border-b border-gray-200';
+                    sourceCell.textContent = result.source_name;
+                    row.appendChild(sourceCell);
+                    
+                    // Catégorie
+                    const categoryCell = document.createElement('td');
+                    categoryCell.className = 'py-2 px-4 border-b border-gray-200';
+                    categoryCell.textContent = result.category;
+                    row.appendChild(categoryCell);
+                    
+                    // Statut
+                    const statusCell = document.createElement('td');
+                    statusCell.className = 'py-2 px-4 border-b border-gray-200';
+                    if (result.success) {
+                        statusCell.innerHTML = '<span class="bg-green-100 text-green-800 py-1 px-2 rounded">OK</span>';
+                        if (result.status_code) {
+                            statusCell.innerHTML += ` <span class="text-xs text-gray-500">(${result.status_code})</span>`;
+                        }
+                    } else {
+                        statusCell.innerHTML = '<span class="bg-red-100 text-red-800 py-1 px-2 rounded">Erreur</span>';
+                        if (result.error) {
+                            statusCell.innerHTML += ` <span class="text-xs text-gray-500">${result.error}</span>`;
+                        }
+                    }
+                    row.appendChild(statusCell);
+                    
+                    // Articles
+                    const articlesCell = document.createElement('td');
+                    articlesCell.className = 'py-2 px-4 border-b border-gray-200';
+                    articlesCell.textContent = result.entries_count || 0;
+                    row.appendChild(articlesCell);
+                    
+                    // Actions
+                    const actionsCell = document.createElement('td');
+                    actionsCell.className = 'py-2 px-4 border-b border-gray-200';
+                    actionsCell.innerHTML = `
+                        <a href="${result.source_url}" target="_blank" class="text-blue-600 hover:underline">
+                            Ouvrir le flux
+                        </a>
+                    `;
+                    row.appendChild(actionsCell);
+                    
+                    tbody.appendChild(row);
+                });
+                
+                // Cacher le chargement et afficher les résultats
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('results-container').classList.remove('hidden');
+            })
+            .catch(error => {
+                console.error('Erreur lors du chargement du diagnostic:', error);
+                document.getElementById('loading').innerHTML = `
+                    <div class="text-red-600 py-4">
+                        <p class="font-bold">Erreur lors du chargement du diagnostic</p>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            });
+    }
+    
+    // Charger le diagnostic au chargement de la page
+    document.addEventListener('DOMContentLoaded', function() {
+        loadDiagnostics();
+        
+        // Configurer le bouton d'actualisation
+        document.getElementById('refresh-btn').addEventListener('click', loadDiagnostics);
+    });
+</script>
+{% endblock %}
