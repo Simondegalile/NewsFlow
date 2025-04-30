@@ -1,1 +1,67 @@
+# Environnement Python
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Fichiers de configuration
 .env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Base de données
+*.sqlite
+*.db
+
+# Fichiers de log
+*.log
+logs/
+
+# Dossiers et fichiers spécifiques à l'IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Fichiers de migration Flask
+migrations/versions/
+
+# Fichiers de cache
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Fichiers spécifiques au projet
+instance/
+.webassets-cache
+flask_session/
+uploads/
+
+# Scripts de test et debug temporaires
+test_*.py
+debug_*.py
+
+# Fichiers de données sensibles
+*.pem
+*.key
+credentials.json
