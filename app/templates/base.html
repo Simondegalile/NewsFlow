@@ -7,62 +7,61 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     {% block styles %}{% endblock %}
+    <style>
+        /* Style pour que les menus déroulants restent visibles au clic */
+        .dropdown-menu {
+            display: none;
+        }
+        .dropdown:hover .dropdown-menu,
+        .dropdown:focus-within .dropdown-menu {
+            display: block;
+        }
+    </style>
 </head>
 <body class="bg-gray-100">
     <header class="bg-white shadow">
         <nav class="container mx-auto px-4 py-3 flex justify-between items-center">
-            <a href="{{ url_for('feed.index') }}" class="text-blue-600 text-2xl font-bold">NewsFlow</a>
+            <a href="/direct" class="text-blue-600 text-2xl font-bold">NewsFlow</a>
             
             <div class="flex space-x-4">
                 {% if current_user.is_authenticated %}
-                    <div class="hidden md:flex space-x-4 mr-4">
-                        <a href="{{ url_for('feed.index') }}" class="text-gray-600 hover:text-blue-600 px-3 py-2">
-                            Articles
+                    <div class="hidden md:flex space-x-6 mr-4">
+                        <a href="/direct" class="text-gray-600 hover:text-blue-600 flex items-center">
+                            <i class="fas fa-rss mr-2"></i>
+                            <span>Flux direct</span>
                         </a>
-                        <a href="{{ url_for('direct_feed.index') }}" class="text-gray-600 hover:text-blue-600 px-3 py-2">
-                            Flux Directs
+                        <a href="{{ url_for('dashboard.index') }}" class="text-gray-600 hover:text-blue-600 flex items-center">
+                            <i class="fas fa-chart-line mr-2"></i>
+                            <span>Tableau de bord</span>
+                        </a>
+                        <a href="{{ url_for('favorite.list_favorites') }}" class="text-gray-600 hover:text-blue-600 flex items-center">
+                            <i class="fas fa-bookmark mr-2"></i>
+                            <span>Enregistrés</span>
+                        </a>
+                        <a href="/direct/history" class="text-gray-600 hover:text-blue-600 flex items-center">
+                            <i class="fas fa-history mr-2"></i>
+                            <span>Historique</span>
                         </a>
                     </div>
                 
                     <div class="flex space-x-3">
-                        <div class="relative group">
-                            <a href="#" class="text-gray-600 hover:text-blue-600">
-                                <i class="fas fa-bookmark"></i>
-                            </a>
-                            <!-- Menu déroulant favoris -->
-                            <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg hidden group-hover:block z-10">
+                        <!-- Menu déroulant profil avec solution pour clic -->
+                        <div class="dropdown relative" tabindex="0">
+                            <button class="text-gray-600 hover:text-blue-600 focus:outline-none">
+                                <i class="fas fa-user"></i>
+                            </button>
+                            <!-- Menu déroulant profil -->
+                            <div class="dropdown-menu absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10">
                                 <div class="py-1">
-                                    <a href="{{ url_for('favorite.list_favorites') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                        Articles stockés
+                                    <a href="/profile" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                        Mon profil
                                     </a>
-                                    <a href="{{ url_for('direct_feed.direct_favorites') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                        Flux directs
+                                    <a href="{{ url_for('auth.logout') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                        Déconnexion
                                     </a>
                                 </div>
                             </div>
                         </div>
-                        
-                        <div class="relative group">
-                            <a href="#" class="text-gray-600 hover:text-blue-600">
-                                <i class="fas fa-history"></i>
-                            </a>
-                            <!-- Menu déroulant historique -->
-                            <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg hidden group-hover:block z-10">
-                                <div class="py-1">
-                                    <a href="{{ url_for('direct_feed.direct_history') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                        Articles récents
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <a href="{{ url_for('dashboard.index') }}" class="text-gray-600 hover:text-blue-600">
-                            <i class="fas fa-chart-line"></i>
-                        </a>
-                        
-                        <a href="{{ url_for('auth.logout') }}" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                            Déconnexion
-                        </a>
                     </div>
                 {% else %}
                     <a href="{{ url_for('auth.login') }}" class="text-blue-600 hover:text-blue-800">Connexion</a>
@@ -76,11 +75,17 @@
         {% if current_user.is_authenticated %}
             <div class="md:hidden container mx-auto px-4 py-2 flex justify-center">
                 <div class="flex space-x-4">
-                    <a href="{{ url_for('feed.index') }}" class="text-gray-600 hover:text-blue-600 px-3 py-2">
-                        Articles
+                    <a href="/direct" class="text-gray-600 hover:text-blue-600">
+                        <i class="fas fa-rss"></i>
                     </a>
-                    <a href="{{ url_for('direct_feed.index') }}" class="text-gray-600 hover:text-blue-600 px-3 py-2">
-                        Flux Directs
+                    <a href="{{ url_for('dashboard.index') }}" class="text-gray-600 hover:text-blue-600">
+                        <i class="fas fa-chart-line"></i>
+                    </a>
+                    <a href="{{ url_for('favorite.list_favorites') }}" class="text-gray-600 hover:text-blue-600">
+                        <i class="fas fa-bookmark"></i>
+                    </a>
+                    <a href="/direct/history" class="text-gray-600 hover:text-blue-600">
+                        <i class="fas fa-history"></i>
                     </a>
                 </div>
             </div>
