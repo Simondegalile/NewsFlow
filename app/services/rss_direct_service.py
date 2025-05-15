@@ -148,22 +148,44 @@ def fetch_rss_feeds(category_id=None, limit=20):
                     elif hasattr(entry, 'summary'):
                         summary = clean_html(entry.summary)
                     
-                    # Image
+                    # Image - PARTIE MODIFIÉE
                     image_url = None
-                    if hasattr(entry, 'media_content') and entry.media_content:
+                    
+                    # 1. Vérifier d'abord les enclosures (format FranceInfo)
+                    if hasattr(entry, 'enclosures') and entry.enclosures:
+                        print(f"  🔍 Enclosures trouvées ({len(entry.enclosures)})")
+                        for enclosure in entry.enclosures:
+                            if 'url' in enclosure and enclosure.get('type', '').startswith('image/'):
+                                image_url = enclosure['url']
+                                print(f"  🖼️ Image trouvée (enclosure): {image_url[:50]}...")
+                                break
+                    
+                    # 2. Si aucune image trouvée, essayer media_content
+                    if not image_url and hasattr(entry, 'media_content') and entry.media_content:
+                        print(f"  🔍 Media content trouvé ({len(entry.media_content)})")
                         for media in entry.media_content:
                             if 'url' in media:
                                 image_url = media['url']
+                                print(f"  🖼️ Image trouvée (media_content): {image_url[:50]}...")
                                 break
+                    
+                    if not image_url:
+                        print(f"  ⚠️ Pas d'image trouvée pour: {title[:30]}...")
                     
                     # Date de publication
                     published = datetime.now().strftime('%d/%m/%Y')
                     if hasattr(entry, 'published'):
                         try:
+                            # Format standard des flux RSS
                             dt = datetime.strptime(entry.published[:25], '%a, %d %b %Y %H:%M:%S')
                             published = dt.strftime('%d/%m/%Y')
-                        except Exception as e:
-                            print(f"  ⚠️ Erreur de parsing de date: {e}")
+                        except Exception:
+                            try:
+                                # Format alternatif (avec fuseau horaire)
+                                dt = datetime.strptime(entry.published[:25], '%a, %d %b %Y %H:%M:%S %z')
+                                published = dt.strftime('%d/%m/%Y')
+                            except Exception as e:
+                                print(f"  ⚠️ Erreur de parsing de date: {e}")
                     
                     # Créer l'article
                     article = {
